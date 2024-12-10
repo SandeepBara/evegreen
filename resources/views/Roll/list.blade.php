@@ -335,7 +335,7 @@
         if(flag=="history"){
             table.column(18).visible(false);
         }
-        else if(flag=="schedule"){
+        else if(["schedule","print"].includes(flag)){
             table.column(15).visible(false);
         }else{            
             table.column(16).visible(false);

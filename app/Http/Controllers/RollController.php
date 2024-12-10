@@ -156,12 +156,17 @@ class RollController extends Controller
                     $data->where("purchase_date","<=",$uptoDate);
                 }
             }
+
             if($flag=="schedule"){
                 $data->where(function($where){
                     $where->where("roll_details.is_schedule_for_print",false)
                         ->orWhere("roll_details.schedule_date_for_print","<",Carbon::now()->format("Y-m-d"));
                     })
                     ->orderBy("roll_details.despatch_date","ASC");
+            }elseif($flag=="print"){
+                $data->where("roll_details.is_printed",false)
+                ->where("roll_details.is_schedule_for_print",true)
+                ->orderBy("roll_details.schedule_date_for_print");
             }
             else{
                 $data->orderBy("roll_details.id","DESC");
@@ -245,6 +250,9 @@ class RollController extends Controller
                         if($val->is_schedule_for_print){
                             $button='<button class="btn btn-sm btn-warning" onClick="openPrintingScheduleModel('.$val->id.')" >Re-Schedule For Print</button>';
                         }
+                    }
+                    if($flag=="print"){
+                        $button='<button class="btn btn-sm btn-info" onClick="openPrintingModel('.$val->id.')" >Update Print</button>';
                     }
                     return $button;
                 })

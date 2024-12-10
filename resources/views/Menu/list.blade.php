@@ -309,7 +309,7 @@
             $('#parent_sub_menu_mstr_id').attr("disabled", false);
         }
     }
-    var loadSubMenuMstr = () => {
+    var loadSubMenuMstr = (sub_parent_id=0) => {
         subMenuLoadCount++;
         if ($('#parent_menu_mstr_id').val()!=0 && $('#parent_menu_mstr_id').val()!=-1) {
             $.ajax({
@@ -324,9 +324,9 @@
                 },
                 success:function(data){
                     if(data.status==true) {
-                        $("#parent_sub_menu_mstr_id").html(data.data);
-                        if (parent_sub_menu_mstr_id!='' && subMenuLoadCount==1) {
-                            $("#parent_sub_menu_mstr_id").val(parent_sub_menu_mstr_id);
+                        $("#parent_sub_menu_mstr_id").html(data?.data?.response);
+                        if (sub_parent_id!='') {
+                            $("#parent_sub_menu_mstr_id").val(sub_parent_id);
                         }
                     } else {
                         $("#parent_sub_menu_mstr_id").html('<option value="0">#</option>');
@@ -360,13 +360,13 @@
                     $("#url_path").val(menuDtl?.url_path);
                     $("#menu_icon").val(menuDtl?.menu_icon);
                     $("#url_path").val(menuDtl?.url_path);
-                    $("#url_path").val(menuDtl?.url_path);
                     $("input[type='checkbox'][id^='user_type_mstr_id']").prop("checked", false);
                     if (Array.isArray(menuDtl?.user_type_mstr_id)) {
                         menuDtl.user_type_mstr_id.forEach(val => {
                             $(`#user_type_mstr_id${val?.id}`).prop("checked", true);
                         });
                     }
+                    loadSubMenuMstr(menuDtl?.sub_parent_id);
                     $("#addMenuModel").modal("show");
                 
                 } 

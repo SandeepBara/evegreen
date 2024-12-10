@@ -131,7 +131,7 @@ class MenuController extends Controller
         try{
             $result  = $this->_M_MenuMaster->subMenuOrm()->where("parent_menu_mstr_id",$request->id)->get();
             $option = [];
-            $status = false;
+            $status = true;
 
             if ($result) {
                 $option = '<option value="0">#</option>';
@@ -185,6 +185,12 @@ class MenuController extends Controller
     public function getMenuDtl($id,Request $request){
         try{
             $data = $this->_M_MenuMaster->find($id);
+            $parentMenu = $this->_M_MenuMaster->where("id",$data->parent_menu_mstr_id)->first();
+            while($parentMenu && !in_array($parentMenu->parent_menu_mstr_id,[0,-1,1])){
+                $parentMenu = $this->_M_MenuMaster->where("id",$parentMenu->parent_menu_mstr_id)->first();
+            }
+            $data->sub_parent_id = $parentMenu ? $data->parent_menu_mstr_id : 0;
+            $data->parent_menu_mstr_id = $parentMenu ? $parentMenu->id : 0;
             $data->user_type_mstr_id = $data->getUserTypeList()->get();
             return responseMsgs(true,"Data Fetched",$data);
         }catch(Exception $e){
