@@ -57,8 +57,7 @@
 
     <link rel="stylesheet" href="{{asset('css/style.css')}}">
 
-    <script src="{{asset('js/common.js')}}"></script>    
-
+    <script src="{{asset('js/common.js')}}"></script> 
 </head>
 
 <body>

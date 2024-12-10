@@ -251,3 +251,27 @@ a.sidebar-link:hover {
     background-color: #43bc80 !important;
     color: rgba(255, 255, 255, 0.9)!important;
 }
+.tr-primary-print td{
+    background-color: #ddf572 !important;
+    color: rgba(255, 255, 255, 0.9)!important;
+}
+.tr-argent-print td{
+    background-color: #f49146 !important;
+    color: rgba(255, 255, 255, 0.9)!important;
+}
+.tr-expiry-print td{
+    background-color: #f63b3b !important;
+    color: rgba(255, 255, 255, 0.9)!important;
+}
+@keyframes blink {
+    0%, 100% {
+    opacity: 1;
+    }
+    50% {
+    opacity: 0.2;
+    }
+}
+
+.blink {
+    animation: blink 2.5s infinite; /* Blinks every second */
+}

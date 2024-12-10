@@ -123,6 +123,13 @@
                     <div  client="client">
                         <div class="row mt-3">
                             <!-- Vendor Address -->
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label class="control-label" for="estimatedDespatchDate">Dispatch Date</label>
+                                    <input type="date" min="{{date('Y-m-d')}}" name="estimatedDespatchDate" id="estimatedDespatchDate" class="form-control" required/>                                  
+                                    <span class="error-text" id="estimatedDespatchDate-error"></span>
+                                </div>
+                            </div> 
                              
                             <div class="col-sm-6">
                                 <div class="form-group">

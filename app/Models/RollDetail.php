@@ -28,6 +28,7 @@ class RollDetail extends Model
         'printing_description',
         'bag_type_id',
         'bag_units',
+        "estimated_despatch_date",
         'is_printed',
         'printing_date',
         'weight_after_printing',

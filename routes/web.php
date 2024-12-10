@@ -65,6 +65,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post("roll/add","addRoll")->name("roll.add");
         Route::post("roll/import","importRoll")->name("roll.import");
         Route::post("roll/book","rollBook")->name("roll.book");
+        Route::get("roll/dtl/{id}","rollDtl")->name("roll.dtl");
+        Route::post("roll/schedule/printing","rollPrintingSchedule")->name("roll.printing.schedule");
     });
 
 });

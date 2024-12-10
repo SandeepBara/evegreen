@@ -57,7 +57,7 @@
         </div>
         @endif
         <div class="panel-body">
-            <table id="postsTable" class="table table-striped">
+            <table id="postsTable" class="table table-striped table-bordered">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -71,10 +71,12 @@
                         <th>Net Weight</th>
                         <th>Gross Weight</th>
                         <th>Book For</th>
+                        <th>Delivery Date</th>
                         <th>Printing Color</th>
                         <th>Bag Type</th>
                         <th>Bag Unit</th>
                         <th>Printing Date</th>
+                        <th>Printing Schedule Date</th>
                         <th>Weight After Printing</th>
                         <th>Action</th>
                     </tr>
@@ -90,6 +92,7 @@
     <x-roll-form />
     <x-import-file />
     <x-roll-booking />
+    <x-printing-schedule-form />
 </main>
 <script>
     const rules = {
@@ -117,6 +120,11 @@
         grossWeight: {
             required: true,
         },
+        estimatedDespatchDate:{
+            required: (element) => {
+                return $("#forClientId").val() != "";
+            },
+        },
         bagUnits: {
             required: (element) => {
                 return $("#forClientId").val() != "";
@@ -136,11 +144,11 @@
 
     var flag = window.location.pathname.split('/').pop();
     $(document).ready(function() {
-        if (flag == "history") {
+        if (flag != "stoke") {
             $("#addRoll").hide();
             $("#addRollImport").hide();
         }
-        $('#postsTable').DataTable({
+        const table = $('#postsTable').DataTable({
             processing: true,
             serverSide: true,
             ajax: {
@@ -215,6 +223,10 @@
                     searchable: false
                 },
                 {
+                    data: "estimated_despatch_date",
+                    name: "estimated_despatch_date",
+                },                
+                {
                     data: "print_color",
                     name: "print_color",
                     orderable: false,
@@ -235,6 +247,10 @@
                     name: "printing_date",
                 },
                 {
+                    data: "schedule_date_for_print",
+                    name: "schedule_date_for_print",
+                },
+                {
                     data: "weight_after_printing",
                     name: "weight_after_printing",
                 },
@@ -246,6 +262,9 @@
                 },
             ],
             dom: 'lBfrtip', // This enables the buttons
+            language: {
+                lengthMenu: "Show _MENU_" // Removes the "entries" text
+            },
             lengthMenu: [
                 [10, 25, 50, 100, -1], // The internal values
                 ["10 Row", "25 Row", "50 Row", "100 Row", "All"] // The display values, replace -1 with "All"
@@ -297,9 +316,30 @@
                 // Apply the custom class to the row
                 if (data.row_color) {
                     $(row).addClass(data.row_color);
+                    if(data.row_color=="tr-client"){
+                        $(row).attr("title", "book for client");
+                    }else if(data.row_color=="tr-client-printed"){
+                        $(row).attr("title", "roll have book and printed");
+                    }else if(data.row_color=="tr-printed"){
+                        $(row).attr("title", "roll is printed");
+                    }else if(data.row_color=="tr-primary-print"){
+                        $(row).attr("title", "this roll will delivered soon");
+                    }else if(data.row_color=="tr-expiry-print blink"){
+                        $(row).attr("title", "this roll  delivery will expired");
+                    }else if(data.row_color=="tr-argent-print"){
+                        $(row).attr("title", "this roll  delivery is argent");
+                    }
                 }
             }
         });
+        if(flag=="history"){
+            table.column(18).visible(false);
+        }
+        else if(flag=="schedule"){
+            table.column(15).visible(false);
+        }else{            
+            table.column(16).visible(false);
+        }
 
         $("#addMenu").on("click", function() {
             $("#myForm").submit();
@@ -352,10 +392,24 @@
             }
         });
 
+        $("#printingScheduleModalForm").validate({
+            rules: {
+                printingScheduleDate: {
+                    required: true,
+                }
+            },
+            submitHandler: function(form) {
+                printingScheduleDate();
+            }
+        });
+
         $("#rollBookingForm").validate({
             rules: {
                 bookingForClientId: {
                     required: true,
+                },
+                bookingEstimatedDespatchDate:{
+                    required:true
                 },
                 bookingBagUnits: {
                     required: true,
@@ -510,42 +564,68 @@
 
         }
         return;
+    }
+
+    function openPrintingScheduleModel(id){
         $.ajax({
-            type: "get",
-            url: "{{ route('menu-edit', ':id') }}".replace(':id', id),
+            type:"GET",
+            url: "{{ route('roll.dtl', ':id') }}".replace(':id', id),
             dataType: "json",
             beforeSend: function() {
                 $("#loadingDiv").show();
             },
-            success: function(data) {
-                if (data.status == true) {
-                    menuDtl = data.data;
-                    console.log(menuDtl);
-                    $("#menu_id").val(menuDtl?.id);
-                    $("#menu_name").val(menuDtl?.menu_name);
-                    $("#menu_name").val(menuDtl?.menu_name);
-                    $("#order_no").val(menuDtl?.order_no);
-                    $("#parent_menu_mstr_id").val(menuDtl?.parent_menu_mstr_id);
-                    $("#parent_sub_menu_mstr_id").val(menuDtl?.parent_sub_menu_mstr_id);
-                    $("#url_path").val(menuDtl?.url_path);
-                    $("#menu_icon").val(menuDtl?.menu_icon);
-                    $("#url_path").val(menuDtl?.url_path);
-                    $("#url_path").val(menuDtl?.url_path);
-                    $("input[type='checkbox'][id^='user_type_mstr_id']").prop("checked", false);
-                    if (Array.isArray(menuDtl?.user_type_mstr_id)) {
-                        menuDtl.user_type_mstr_id.forEach(val => {
-                            $(`#user_type_mstr_id${val?.id}`).prop("checked", true);
-                        });
-                    }
-                    $("#addMenuModel").modal("show");
-
-                }
+            success:function(data){
+                if(data.status==true) {
+                    rolDtl = data.data;
+                    console.log(rolDtl); 
+                    $("#printingScheduleRollId").val(rolDtl?.id);
+                    $("#printingScheduleDate").val(rolDtl?.schedule_date_for_print);
+                    $("#roll_no_display").html(rolDtl?.roll_no);
+                    $("#printingScheduleModal").modal("show");
+                
+                } 
                 $("#loadingDiv").hide();
             },
-            error: function(error) {
+            error:function(error){
                 $("#loadingDiv").hide();
             }
         });
+    }
+
+    function printingScheduleDate(){
+        $.ajax({
+                type: "POST",
+                'url': "{{route('roll.printing.schedule')}}",
+
+                "deferRender": true,
+                "dataType": "json",
+                'data': $("#printingScheduleModalForm").serialize(),
+                beforeSend: function() {
+                    $("#loadingDiv").show();
+                },
+                success: function(data) {
+                    $("#loadingDiv").hide();
+                    if (data.status) {
+                        $("#printingScheduleModalForm").get(0).reset();
+                        $("#roll_no_display").html("");
+                        $("#printingScheduleModal").modal('hide');
+                        $('#postsTable').DataTable().draw();
+                        modelInfo(data.messages);
+                    } else if (data?.errors) {
+                        let errors = data?.errors;
+                        console.log(data?.errors?.rollNo[0]);
+                        modelInfo(data.messages);
+                        for (field in errors) {
+                            console.log(field);
+                            $(`#${field}-error`).text(errors[field][0]);
+                        }
+                    } else {
+                        modelInfo("Something Went Wrong!!");
+                    }
+                },
+            }
+
+        ); 
     }
 
     function bookForClient() {

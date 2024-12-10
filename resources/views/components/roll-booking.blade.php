@@ -31,6 +31,11 @@
                                 <span class="error-text" id="bookingForClientId-error"></span>
                             </div>
                             <div class="form-group">
+                                <label class="control-label" for="bookingEstimatedDespatchDate">Dispatch Date</label>
+                                <input type="date" min="{{date('Y-m-d')}}" name="bookingEstimatedDespatchDate" id="bookingEstimatedDespatchDate" class="form-control" required/>                                  
+                                <span class="error-text" id="bookingEstimatedDespatchDate-error"></span>
+                            </div>
+                            <div class="form-group">
                                 <label class="control-label" for="bookingBagUnits">Bag Unit</label>
                                 <select name="bookingBagUnits" id="bookingBagUnits" class="form-control">
                                     <option value="">Select</option>
