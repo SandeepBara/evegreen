@@ -93,6 +93,7 @@
     <x-import-file />
     <x-roll-booking />
     <x-printing-schedule-form />
+    <x-printing-update-form />
 </main>
 <script>
     const rules = {
@@ -403,6 +404,17 @@
             }
         });
 
+        $("#printingUpdateModalForm").validate({
+            rules: {
+                printingUpdateDate: {
+                    required: true,
+                }
+            },
+            submitHandler: function(form) {
+                printingUpdateModal();
+            }
+        });
+
         $("#rollBookingForm").validate({
             rules: {
                 bookingForClientId: {
@@ -626,6 +638,73 @@
             }
 
         ); 
+    }
+
+    function openPrintingModel(id){
+        $.ajax({
+            type:"GET",
+            url: "{{ route('roll.dtl', ':id') }}".replace(':id', id),
+            dataType: "json",
+            beforeSend: function() {
+                $("#loadingDiv").show();
+            },
+            success:function(data){
+                if(data.status==true) {
+                    rolDtl = data.data;
+                    console.log(rolDtl); 
+                    $("#printingUpdateRollId").val(rolDtl?.id);
+                    $('[display_roll_no="roll_no_display"]').each(function(index, element) {
+                        // Use jQuery to wrap the raw DOM element
+                        $(element).html(rolDtl?.roll_no || '');
+                    });
+                    $("#printingUpdateModal").modal("show");
+                
+                } 
+                $("#loadingDiv").hide();
+            },
+            error:function(error){
+                $("#loadingDiv").hide();
+            }
+        });
+    }
+
+    function printingUpdateModal(){
+        $.ajax({
+                type: "POST",
+                'url': "{{route('roll.printing.update')}}",
+
+                "deferRender": true,
+                "dataType": "json",
+                'data': $("#printingUpdateModalForm").serialize(),
+                beforeSend: function() {
+                    $("#loadingDiv").show();
+                },
+                success: function(data) {
+                    $("#loadingDiv").hide();
+                    if (data.status) {
+                        $("#printingUpdateModalForm").get(0).reset();
+                        $('[display_roll_no="roll_no_display"]').each(function(index, element) {
+                            // Use jQuery to wrap the raw DOM element
+                            $(element).html('');
+                        });
+                        $("#printingUpdateModal").modal('hide');
+                        $('#postsTable').DataTable().draw();
+                        modelInfo(data.messages);
+                    } else if (data?.errors) {
+                        let errors = data?.errors;
+                        console.log(data?.errors?.rollNo[0]);
+                        modelInfo(data.messages);
+                        for (field in errors) {
+                            console.log(field);
+                            $(`#${field}-error`).text(errors[field][0]);
+                        }
+                    } else {
+                        modelInfo("Something Went Wrong!!");
+                    }
+                },
+            }
+
+        );
     }
 
     function bookForClient() {

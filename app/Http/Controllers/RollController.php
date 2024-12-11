@@ -6,6 +6,7 @@ use App\Exports\ExportRoll;
 use App\Imports\RollDetailsImport;
 use App\Models\BagType;
 use App\Models\ClientDetail;
+use App\Models\PrintingMachine;
 use App\Models\RollDetail;
 use App\Models\RollPrintColor;
 use App\Models\VendorDetail;
@@ -26,6 +27,7 @@ class RollController extends Controller
     private $_M_RollPrintColor;
     private $_M_ClientDetails;
     private $_M_BagType;
+    private $_M_PrintingMachine;
 
     function __construct()
     {
@@ -34,6 +36,7 @@ class RollController extends Controller
         $this->_M_RollPrintColor = new RollPrintColor();
         $this->_M_ClientDetails = new ClientDetail();
         $this->_M_BagType = new BagType();
+        $this->_M_PrintingMachine = new PrintingMachine();
     }
 
     public function addRoll(Request $request){
@@ -133,6 +136,7 @@ class RollController extends Controller
 
     public function rollList(Request $request){
         $flag= $request->flag;
+        $user_type = Auth()->user()->user_type_id??"";
         if($request->ajax()){
             // dd($request->ajax());
             $data = $this->_M_RollDetail->select("roll_details.*","vendor_details.vendor_name","client_details.client_name","bag_types.bag_type")
@@ -158,8 +162,12 @@ class RollController extends Controller
             }
 
             if($flag=="schedule"){
-                $data->where(function($where){
-                    $where->where("roll_details.is_schedule_for_print",false)
+                if(!in_array($user_type,[11,12])){
+                    $data->whereNotNull("roll_details.for_client_id");
+                }
+                $data->where("roll_details.is_printed",false)
+                    ->where(function($where){
+                        $where->where("roll_details.is_schedule_for_print",false)
                         ->orWhere("roll_details.schedule_date_for_print","<",Carbon::now()->format("Y-m-d"));
                     })
                     ->orderBy("roll_details.despatch_date","ASC");
@@ -234,15 +242,14 @@ class RollController extends Controller
                 ->addColumn('print_color', function ($val) {                    
                     return collect($val->getPrintingColor()->get())->implode("color",",");
                 })
-                ->addColumn('action', function ($val) use($flag) {
-                    $user_type = Auth()->user()->user_type_id??"";
+                ->addColumn('action', function ($val) use($flag,$user_type) {                    
                     $button = "";
                     if($val->is_roll_cut){
                         return $button;
                     }
                     if(in_array($user_type,[1,2]) && !$val->for_client_id){
                         $button .= '<button class="btn btn-sm btn-warning" onClick="openModelBookingModel('.$val->id.')" >Book</button>';
-                    }if(in_array($user_type,[1,2]) && $val->for_client_id){
+                    }if(in_array($user_type,[1,2]) && $val->for_client_id && !$val->is_printed){
                         $button .= '<button class="btn btn-sm btn-danger" onClick="openModelAlterBookingModel('.$val->id.')" >Alter Booking</button>';
                     }
                     if($flag=="schedule"){
@@ -290,6 +297,34 @@ class RollController extends Controller
             $roll->update();
             DB::commit();
             return responseMsgs(true,"Roll No-".$roll->roll_no." Is Scheduled","");
+        }catch(Exception $e){
+            DB::rollBack();
+            return responseMsgs(false,$e->getMessage(),"");
+        }
+    }
+
+    public function rollPrintingUpdate(Request $request){        
+        try{
+            $rule = [
+                "printingUpdateRollId" => "required|exists:" . $this->_M_RollDetail->getTable() . ",id,is_printed,false",
+                "printingUpdateDate" => "required|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d"),
+                "printingUpdateWeight" => "required|numeric",
+                "printingUpdateMachineId" => "required|exists:" . $this->_M_PrintingMachine->getTable() . ",id",
+            ];
+            $validate = Validator::make($request->all(),$rule);
+            if($validate->fails()){
+                return validationError($validate);
+            }
+            $roll = $this->_M_RollDetail->find($request->printingUpdateRollId);
+            $roll->is_printed = true;
+            $roll->printing_date = $request->printingUpdateDate;
+            $roll->weight_after_printing = $request->printingUpdateWeight;
+            $roll->printing_machine_id = $request->printingUpdateMachineId;
+            DB::beginTransaction();
+            $roll->update();
+            DB::commit();
+            return responseMsgs(true,"Roll No ".$roll->roll_no." Printed","");
+
         }catch(Exception $e){
             DB::rollBack();
             return responseMsgs(false,$e->getMessage(),"");
