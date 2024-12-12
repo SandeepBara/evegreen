@@ -78,6 +78,9 @@
                         <th>Printing Date</th>
                         <th>Printing Schedule Date</th>
                         <th>Weight After Printing</th>
+                        <th>Cutting Date</th>
+                        <th>Cutting Schedule Date</th>
+                        <th>Weight After Cutting</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -94,6 +97,8 @@
     <x-roll-booking />
     <x-printing-schedule-form />
     <x-printing-update-form />
+    <x-cutting-schedule-form />
+    <x-cutting-update-form />
 </main>
 <script>
     const rules = {
@@ -256,6 +261,18 @@
                     name: "weight_after_printing",
                 },
                 {
+                    data: "cutting_date",
+                    name: "cutting_date",
+                },
+                {
+                    data: "schedule_date_for_cutting",
+                    name: "schedule_date_for_cutting",
+                },
+                {
+                    data: "weight_after_cutting",
+                    name: "weight_after_cutting",
+                },
+                {
                     data: "action",
                     name: "action",
                     orderable: false,
@@ -334,13 +351,15 @@
             }
         });
         if(flag=="history"){
-            table.column(18).visible(false);
+            table.column(21).visible(false);
         }
-        else if(["schedule","print"].includes(flag)){
-            table.column(15).visible(false);
-        }else{            
-            table.column(16).visible(false);
-        }
+        // else if(["schedule-printing","print"].includes(flag)){
+        //     table.column(15).visible(false);
+        // }else if(["schedule-cutting","cutting"].includes(flag)){
+        //     table.column(16).visible(false);
+        // }else{            
+        //     table.column(16).visible(false);
+        // }
 
         $("#addMenu").on("click", function() {
             $("#myForm").submit();
@@ -412,6 +431,28 @@
             },
             submitHandler: function(form) {
                 printingUpdateModal();
+            }
+        });
+
+        $("#cuttingScheduleModalForm").validate({
+            rules: {
+                cuttingScheduleDate: {
+                    required: true,
+                }
+            },
+            submitHandler: function(form) {
+                cuttingScheduleDate();
+            }
+        });
+
+        $("#cuttingUpdateModalForm").validate({
+            rules: {
+                cuttingUpdateDate: {
+                    required: true,
+                }
+            },
+            submitHandler: function(form) {
+                cuttingUpdateModal();
             }
         });
 
@@ -688,6 +729,141 @@
                             $(element).html('');
                         });
                         $("#printingUpdateModal").modal('hide');
+                        $('#postsTable').DataTable().draw();
+                        modelInfo(data.messages);
+                    } else if (data?.errors) {
+                        let errors = data?.errors;
+                        console.log(data?.errors?.rollNo[0]);
+                        modelInfo(data.messages);
+                        for (field in errors) {
+                            console.log(field);
+                            $(`#${field}-error`).text(errors[field][0]);
+                        }
+                    } else {
+                        modelInfo("Something Went Wrong!!");
+                    }
+                },
+            }
+
+        );
+    }
+
+    function openCuttingScheduleModel(id){
+        $.ajax({
+            type:"GET",
+            url: "{{ route('roll.dtl', ':id') }}".replace(':id', id),
+            dataType: "json",
+            beforeSend: function() {
+                $("#loadingDiv").show();
+            },
+            success:function(data){
+                if(data.status==true) {
+                    rolDtl = data.data;
+                    console.log(rolDtl); 
+                    $("#cuttingScheduleRollId").val(rolDtl?.id);
+                    $("#cuttingScheduleDate").val(rolDtl?.schedule_date_for_cutting);                    
+                    $('[display_roll_no="roll_no_display"]').each(function(index, element) {
+                            // Use jQuery to wrap the raw DOM element
+                            $(element).html(rolDtl?.roll_no);
+                        });
+                    $("#cuttingScheduleModal").modal("show");
+                
+                } 
+                $("#loadingDiv").hide();
+            },
+            error:function(error){
+                $("#loadingDiv").hide();
+            }
+        });
+    }
+
+    function cuttingScheduleDate(){
+        $.ajax({
+                type: "POST",
+                'url': "{{route('roll.cutting.schedule')}}",
+
+                "deferRender": true,
+                "dataType": "json",
+                'data': $("#cuttingScheduleModalForm").serialize(),
+                beforeSend: function() {
+                    $("#loadingDiv").show();
+                },
+                success: function(data) {
+                    $("#loadingDiv").hide();
+                    if (data.status) {
+                        $("#cuttingScheduleModalForm").get(0).reset();
+                        $('[display_roll_no="roll_no_display"]').each(function(index, element) {
+                            // Use jQuery to wrap the raw DOM element
+                            $(element).html('');
+                        });
+                        $("#cuttingScheduleModal").modal('hide');
+                        $('#postsTable').DataTable().draw();
+                        modelInfo(data.messages);
+                    } else if (data?.errors) {
+                        let errors = data?.errors;
+                        console.log(data?.errors?.rollNo[0]);
+                        modelInfo(data.messages);
+                        for (field in errors) {
+                            console.log(field);
+                            $(`#${field}-error`).text(errors[field][0]);
+                        }
+                    } else {
+                        modelInfo("Something Went Wrong!!");
+                    }
+                },
+            }
+
+        ); 
+    }
+
+    function openCuttingModel(id){
+        $.ajax({
+            type:"GET",
+            url: "{{ route('roll.dtl', ':id') }}".replace(':id', id),
+            dataType: "json",
+            beforeSend: function() {
+                $("#loadingDiv").show();
+            },
+            success:function(data){
+                if(data.status==true) {
+                    rolDtl = data.data;
+                    console.log(rolDtl); 
+                    $("#cuttingUpdateRollId").val(rolDtl?.id);
+                    $('[display_roll_no="roll_no_display"]').each(function(index, element) {
+                        // Use jQuery to wrap the raw DOM element
+                        $(element).html(rolDtl?.roll_no || '');
+                    });
+                    $("#cuttingUpdateModal").modal("show");
+                
+                } 
+                $("#loadingDiv").hide();
+            },
+            error:function(error){
+                $("#loadingDiv").hide();
+            }
+        });
+    }
+
+    function cuttingUpdateModal(){
+        $.ajax({
+                type: "POST",
+                'url': "{{route('roll.cutting.update')}}",
+
+                "deferRender": true,
+                "dataType": "json",
+                'data': $("#cuttingUpdateModalForm").serialize(),
+                beforeSend: function() {
+                    $("#loadingDiv").show();
+                },
+                success: function(data) {
+                    $("#loadingDiv").hide();
+                    if (data.status) {
+                        $("#printingUpdateModalForm").get(0).reset();
+                        $('[display_roll_no="roll_no_display"]').each(function(index, element) {
+                            // Use jQuery to wrap the raw DOM element
+                            $(element).html('');
+                        });
+                        $("#cuttingUpdateModal").modal('hide');
                         $('#postsTable').DataTable().draw();
                         modelInfo(data.messages);
                     } else if (data?.errors) {

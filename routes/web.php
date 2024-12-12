@@ -68,6 +68,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get("roll/dtl/{id}","rollDtl")->name("roll.dtl");
         Route::post("roll/schedule/printing","rollPrintingSchedule")->name("roll.printing.schedule");
         Route::post("roll/printing/update","rollPrintingUpdate")->name("roll.printing.update");
+        Route::post("roll/schedule/cutting","rollCuttingSchedule")->name("roll.cutting.schedule");
+        Route::post("roll/cutting/update","rollCuttingUpdate")->name("roll.cutting.update");
     });
 
 });

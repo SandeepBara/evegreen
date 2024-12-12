@@ -161,7 +161,7 @@ class RollController extends Controller
                 }
             }
 
-            if($flag=="schedule"){
+            if($flag=="schedule-printing"){
                 if(!in_array($user_type,[11,12])){
                     $data->whereNotNull("roll_details.for_client_id");
                 }
@@ -174,7 +174,21 @@ class RollController extends Controller
             }elseif($flag=="print"){
                 $data->where("roll_details.is_printed",false)
                 ->where("roll_details.is_schedule_for_print",true)
-                ->orderBy("roll_details.schedule_date_for_print");
+                ->orderBy("roll_details.schedule_date_for_print","ASC");
+            }elseif($flag=="schedule-cutting"){
+                if(!in_array($user_type,[11,12])){
+                    $data->whereNotNull("roll_details.for_client_id");
+                }
+                $data->where("roll_details.is_roll_cut",false)
+                    ->where(function($where){
+                        $where->where("roll_details.is_schedule_for_cutting",false)
+                        ->orWhere("roll_details.schedule_date_for_cutting","<",Carbon::now()->format("Y-m-d"));
+                    })
+                    ->orderBy("roll_details.schedule_date_for_cutting","ASC");
+            }elseif($flag=="cutting"){
+                $data->where("roll_details.is_roll_cut",false)
+                ->where("roll_details.is_schedule_for_cutting",true)
+                ->orderBy("roll_details.schedule_date_for_cutting","ASC");
             }
             else{
                 $data->orderBy("roll_details.id","DESC");
@@ -220,7 +234,23 @@ class RollController extends Controller
                     elseif($val->for_client_id){
                         $color="tr-client";
                     }
-                    if($flag=="schedule"){
+                    if($flag=="schedule-printing"){
+                        $color="";
+                        if($flag=="schedule" && $val->estimated_despatch_date ){
+                            $dayDiff = Carbon::now()->diffInDays(Carbon::parse($val->estimated_despatch_date),false);
+                            // dd($dayDiff,$val->despatch_date);
+                            if($dayDiff<3){
+                                $color="tr-primary-print";
+                            }
+                            if($dayDiff<2){
+                                $color="tr-argent-print";
+                            }
+                            if($dayDiff<0){
+                                $color="tr-expiry-print blink";
+                            }
+                        }
+                    }
+                    if($flag=="schedule-cutting"){
                         $color="";
                         if($flag=="schedule" && $val->estimated_despatch_date ){
                             $dayDiff = Carbon::now()->diffInDays(Carbon::parse($val->estimated_despatch_date),false);
@@ -252,7 +282,7 @@ class RollController extends Controller
                     }if(in_array($user_type,[1,2]) && $val->for_client_id && !$val->is_printed){
                         $button .= '<button class="btn btn-sm btn-danger" onClick="openModelAlterBookingModel('.$val->id.')" >Alter Booking</button>';
                     }
-                    if($flag=="schedule"){
+                    if($flag=="schedule-printing"){
                         $button='<button class="btn btn-sm btn-warning" onClick="openPrintingScheduleModel('.$val->id.')" >Schedule For Print</button>';
                         if($val->is_schedule_for_print){
                             $button='<button class="btn btn-sm btn-warning" onClick="openPrintingScheduleModel('.$val->id.')" >Re-Schedule For Print</button>';
@@ -260,6 +290,15 @@ class RollController extends Controller
                     }
                     if($flag=="print"){
                         $button='<button class="btn btn-sm btn-info" onClick="openPrintingModel('.$val->id.')" >Update Print</button>';
+                    }
+                    if($flag=="schedule-cutting"){
+                        $button='<button class="btn btn-sm btn-warning" onClick="openCuttingScheduleModel('.$val->id.')" >Schedule For Cut</button>';
+                        if($val->is_schedule_for_cutting){
+                            $button='<button class="btn btn-sm btn-warning" onClick="openCuttingScheduleModel('.$val->id.')" >Re-Schedule For Cut</button>';
+                        }
+                    }
+                    if($flag=="cutting"){
+                        $button='<button class="btn btn-sm btn-info" onClick="openCuttingModel('.$val->id.')" >Update Cutting</button>';
                     }
                     return $button;
                 })
@@ -324,6 +363,52 @@ class RollController extends Controller
             $roll->update();
             DB::commit();
             return responseMsgs(true,"Roll No ".$roll->roll_no." Printed","");
+
+        }catch(Exception $e){
+            DB::rollBack();
+            return responseMsgs(false,$e->getMessage(),"");
+        }
+    }
+
+    public function rollCuttingSchedule(Request $request){
+        try{
+            $roll = $this->_M_RollDetail->find($request->cuttingScheduleRollId);
+            if($roll->is_roll_cut){
+                throw new Exception("Roll Already Cute");
+            }
+            $roll->is_schedule_for_cutting = true;
+            $roll->schedule_date_for_cutting = $request->cuttingScheduleDate;
+            DB::beginTransaction();
+            $roll->update();
+            DB::commit();
+            return responseMsgs(true,"Roll No-".$roll->roll_no." Is Scheduled","");
+        }catch(Exception $e){
+            DB::rollBack();
+            return responseMsgs(false,$e->getMessage(),"");
+        }
+    }
+
+    public function rollCuttingUpdate(Request $request){        
+        try{
+            $rule = [
+                "cuttingUpdateRollId" => "required|exists:" . $this->_M_RollDetail->getTable() . ",id,is_roll_cut,false",
+                "cuttingUpdateDate" => "required|date|date_format:Y-m-d|before_or_equal:" . Carbon::now()->format("Y-m-d"),
+                "cuttingUpdateWeight" => "required|numeric",
+                "cuttingUpdateMachineId" => "required|exists:" . $this->_M_PrintingMachine->getTable() . ",id",
+            ];
+            $validate = Validator::make($request->all(),$rule);
+            if($validate->fails()){
+                return validationError($validate);
+            }
+            $roll = $this->_M_RollDetail->find($request->cuttingUpdateRollId);
+            $roll->is_roll_cut = true;
+            $roll->cutting_date = $request->cuttingUpdateDate;
+            $roll->weight_after_cutting = $request->cuttingUpdateWeight;
+            $roll->cutting_machine_id = $request->cuttingUpdateMachineId;
+            DB::beginTransaction();
+            $roll->update();
+            DB::commit();
+            return responseMsgs(true,"Roll No ".$roll->roll_no." cut","");
 
         }catch(Exception $e){
             DB::rollBack();
