@@ -337,21 +337,33 @@
                     if(data.row_color=="tr-client"){
                         $(row).attr("title", "book for client");
                     }else if(data.row_color=="tr-client-printed"){
-                        $(row).attr("title", "roll have book and printed");
+                        $(row).attr("title", "roll have booked and printed");
                     }else if(data.row_color=="tr-printed"){
                         $(row).attr("title", "roll is printed");
                     }else if(data.row_color=="tr-primary-print"){
-                        $(row).attr("title", "this roll will delivered soon");
+                        $(row).attr("title", "this roll will be delivering soon");
                     }else if(data.row_color=="tr-expiry-print blink"){
-                        $(row).attr("title", "this roll  delivery will expired");
+                        $(row).attr("title", "this roll  delivery has been expired");
                     }else if(data.row_color=="tr-argent-print"){
-                        $(row).attr("title", "this roll  delivery is argent");
+                        $(row).attr("title", "this roll  delivery is urgent");
                     }
                 }
             }
         });
         if(flag=="history"){
             table.column(21).visible(false);
+            table.column(20).visible(false);
+            table.column(19).visible(false);
+            table.column(18).visible(false);
+            table.column(17).visible(false);
+            table.column(16).visible(false);
+            table.column(15).visible(false);
+            table.column(14).visible(false);
+            table.column(13).visible(false);
+            table.column(12).visible(false);
+            table.column(11).visible(false);
+            table.column(10).visible(false);
+
         }
         // else if(["schedule-printing","print"].includes(flag)){
         //     table.column(15).visible(false);
